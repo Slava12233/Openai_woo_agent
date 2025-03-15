@@ -37,9 +37,15 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_id = update.effective_user.id
     logger.info(f"User {user_id} started a conversation")
     
+    # נקה את היסטוריית השיחה אם זיכרון השיחה מופעל
+    if MEMORY_ENABLED:
+        conversation_memory.clear_conversation(user_id)
+        logger.info(f"Cleared conversation history for user {user_id} on new chat start")
+    
     # שלח הודעת פתיחה
     welcome_message = (
         "שלום! אני בוט WooCommerce שיכול לעזור לך לנהל את החנות שלך.\n"
+        "זוהי שיחה חדשה, וכל היסטוריית השיחה הקודמת נמחקה.\n"
         "אתה יכול לשאול אותי על מוצרים, קטגוריות, הזמנות ועוד.\n"
         "נסה לשאול אותי 'מה המוצרים בחנות?' או 'כמה הזמנות יש?'"
     )
