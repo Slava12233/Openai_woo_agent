@@ -8,6 +8,7 @@ import time
 import uuid
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
+import datetime
 
 from src.config import MEMORY_MAX_MESSAGES, MEMORY_CONTEXT_LIMIT, DB_ENABLED
 from src.database.repository import (
@@ -42,7 +43,18 @@ class Message:
     @classmethod
     def from_db_dict(cls, db_dict: Dict[str, Any]) -> 'Message':
         """יצירת הודעה ממילון שהתקבל ממסד הנתונים."""
-        timestamp = time.mktime(db_dict['timestamp'].timetuple()) if isinstance(db_dict['timestamp'], str) else time.time()
+        if isinstance(db_dict['timestamp'], datetime.datetime):
+            timestamp = time.mktime(db_dict['timestamp'].timetuple())
+        elif isinstance(db_dict['timestamp'], str):
+            # אם התאריך הוא מחרוזת, ננסה להמיר אותו ל-datetime
+            try:
+                dt = datetime.datetime.fromisoformat(db_dict['timestamp'])
+                timestamp = time.mktime(dt.timetuple())
+            except (ValueError, TypeError):
+                timestamp = time.time()
+        else:
+            timestamp = time.time()
+            
         return cls(
             role=db_dict['role'],
             content=db_dict['content'],

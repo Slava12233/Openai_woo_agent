@@ -10,7 +10,7 @@ from typing import Dict, List, Any, Optional, Callable
 
 from agents import Agent, Runner, function_tool, RunConfig, ModelSettings
 
-from src.config import OPENAI_API_KEY, OPENAI_MODEL, ASSISTANT_INSTRUCTIONS, MEMORY_ENABLED
+from src.config import OPENAI_API_KEY, OPENAI_MODEL, ASSISTANT_INSTRUCTIONS, MEMORY_ENABLED, DB_ENABLED
 
 # הגדרת לוגר
 logger = logging.getLogger(__name__)
@@ -323,13 +323,15 @@ async def _process_message_async(message: str, conversation_history: Optional[Li
     
     # בדוק אם יש תשובה במטמון
     clean_message = message.strip().lower().rstrip("?!.")
+    
+    # בדוק אם יש תשובה במטמון המקומי
     if clean_message in response_cache:
-        logger.info(f"Found cached response for: '{clean_message}'")
+        logger.info(f"Found cached response in local cache for: '{clean_message}'")
         cached_response = response_cache[clean_message]
         
         # מדוד את זמן הסיום ורשום ללוג
         end_time = asyncio.get_event_loop().time()
-        logger.info(f"Cache hit processing time: {end_time - start_time:.4f} seconds")
+        logger.info(f"Local cache hit processing time: {end_time - start_time:.4f} seconds")
         
         return {
             "thread_id": "not_used_with_sdk",
@@ -337,6 +339,28 @@ async def _process_message_async(message: str, conversation_history: Optional[Li
             "success": True
         }
     
+    # בדוק אם יש תשובה במטמון במסד הנתונים (אם מסד הנתונים מופעל)
+    if DB_ENABLED:
+        try:
+            from src.database.repository import get_cached_response
+            db_cached_response = get_cached_response(clean_message)
+            if db_cached_response:
+                logger.info(f"Found cached response in database for: '{clean_message}'")
+                # שמירה גם במטמון המקומי
+                response_cache[clean_message] = db_cached_response
+                
+                # מדוד את זמן הסיום ורשום ללוג
+                end_time = asyncio.get_event_loop().time()
+                logger.info(f"Database cache hit processing time: {end_time - start_time:.4f} seconds")
+                
+                return {
+                    "thread_id": "not_used_with_sdk",
+                    "response": db_cached_response,
+                    "success": True
+                }
+        except Exception as e:
+            logger.error(f"Error checking database cache: {str(e)}")
+
     try:
         # קבל או צור סוכן
         agent = create_or_get_agent()
@@ -393,10 +417,33 @@ async def _process_message_async(message: str, conversation_history: Optional[Li
             
             # שמור את התשובה במטמון אם זו שאלה כללית
             clean_message = message.strip().lower().rstrip("?!.")
-            if any(keyword in clean_message for keyword in ["מה אתה", "יכול", "עושה", "עזרה", "אפשרויות", "פקודות"]):
-                logger.info(f"Caching response for general question: '{clean_message}'")
-                response_cache[clean_message] = response
+            should_cache = False
             
+            # בדוק אם זו שאלה כללית לפי מילות מפתח
+            if any(keyword in clean_message for keyword in ["מה אתה", "יכול", "עושה", "עוזר", "אפשרויות", "פקודות", "גרסה", "מודל"]):
+                should_cache = True
+                logger.info(f"Identified general question for caching: '{clean_message}'")
+            
+            # בדוק אם זו שאלה קצרה (פחות מ-50 תווים)
+            elif len(clean_message) < 50:
+                should_cache = True
+                logger.info(f"Identified short question for caching: '{clean_message}'")
+            
+            # שמירה במטמון אם צריך
+            if should_cache:
+                # שמירה במטמון המקומי
+                logger.info(f"Caching response in local cache for: '{clean_message}'")
+                response_cache[clean_message] = response
+                
+                # שמירה במטמון במסד הנתונים אם מופעל
+                if DB_ENABLED:
+                    try:
+                        from src.database.repository import save_to_cache
+                        save_to_cache(clean_message, response)
+                        logger.info(f"Cached response in database for: '{clean_message}'")
+                    except Exception as e:
+                        logger.error(f"Error caching response in database: {str(e)}")
+
             # מדוד את זמן הסיום ורשום ללוג
             end_time = asyncio.get_event_loop().time()
             logger.info(f"Full response processing time: {end_time - start_time:.4f} seconds")
@@ -445,4 +492,4 @@ async def process_message(message: str, conversation_history: Optional[List[Dict
             "thread_id": "not_used_with_sdk",
             "response": f"שגיאה בעיבוד ההודעה: {str(e)}",
             "success": False
-        } 
+        }
