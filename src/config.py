@@ -30,6 +30,11 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CACHE_ENABLED = os.getenv("CACHE_ENABLED", "True").lower() == "true"
 CACHE_EXPIRY = int(os.getenv("CACHE_EXPIRY", "300"))  # ברירת מחדל: 5 דקות
 
+# הגדרות זיכרון שיחה
+MEMORY_ENABLED = os.getenv("MEMORY_ENABLED", "True").lower() == "true"
+MEMORY_MAX_MESSAGES = int(os.getenv("MEMORY_MAX_MESSAGES", "50"))  # מספר מקסימלי של הודעות לשמירה לכל משתמש
+MEMORY_CONTEXT_LIMIT = int(os.getenv("MEMORY_CONTEXT_LIMIT", "10"))  # מספר ההודעות האחרונות שיועברו לסוכן
+
 # הגדרות כלים
 TOOLS_CONFIG = [
     {
@@ -126,6 +131,7 @@ ASSISTANT_INSTRUCTIONS = """
 3. התמקד במידע הרלוונטי ביותר למשתמש.
 4. השתדל להשתמש בכלים באופן יעיל ומהיר.
 5. אם אתה לא בטוח במשהו, אמור זאת במקום לנחש.
+6. התייחס להיסטוריית השיחה כדי לספק תשובות עקביות ורלוונטיות.
 
 מטרתך היא לספק מידע מדויק ושימושי בצורה יעילה ומהירה.
 """ 

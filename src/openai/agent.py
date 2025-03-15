@@ -10,7 +10,7 @@ from typing import Dict, List, Any, Optional, Callable
 
 from agents import Agent, Runner, function_tool, RunConfig, ModelSettings
 
-from src.config import OPENAI_API_KEY, OPENAI_MODEL, ASSISTANT_INSTRUCTIONS
+from src.config import OPENAI_API_KEY, OPENAI_MODEL, ASSISTANT_INSTRUCTIONS, MEMORY_ENABLED
 
 # הגדרת לוגר
 logger = logging.getLogger(__name__)
@@ -305,47 +305,72 @@ def is_simple_question(message: str) -> Optional[str]:
     
     return None
 
-async def _process_message_async(message: str) -> Dict[str, Any]:
+async def _process_message_async(message: str, conversation_history: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
     """
-    מעבד הודעה באופן אסינכרוני ומחזיר תשובה מהסוכן
+    מעבד הודעה באופן אסינכרוני
     
     Args:
         message: הודעת המשתמש
+        conversation_history: היסטוריית השיחה (אופציונלי)
     
     Returns:
         מילון עם התשובה ומזהה השרשור
     """
+    logger.info("Processing user message asynchronously")
+    
+    # מדוד את זמן ההתחלה
+    start_time = asyncio.get_event_loop().time()
+    
+    # בדוק אם יש תשובה במטמון
+    clean_message = message.strip().lower().rstrip("?!.")
+    if clean_message in response_cache:
+        logger.info(f"Found cached response for: '{clean_message}'")
+        cached_response = response_cache[clean_message]
+        
+        # מדוד את זמן הסיום ורשום ללוג
+        end_time = asyncio.get_event_loop().time()
+        logger.info(f"Cache hit processing time: {end_time - start_time:.4f} seconds")
+        
+        return {
+            "thread_id": "not_used_with_sdk",
+            "response": cached_response,
+            "success": True
+        }
+    
     try:
-        # מדוד את זמן התחלת העיבוד
-        start_time = asyncio.get_event_loop().time()
-        
-        # בדוק אם זו שאלה פשוטה
-        simple_response = is_simple_question(message)
-        if simple_response:
-            # מדוד את זמן הסיום ורשום ללוג
-            end_time = asyncio.get_event_loop().time()
-            logger.info(f"Simple response processing time: {end_time - start_time:.4f} seconds")
-            
-            return {
-                "thread_id": "not_used_with_sdk",
-                "response": simple_response,
-                "success": True
-            }
-        
-        # וודא שיש לנו סוכן
+        # קבל או צור סוכן
         agent = create_or_get_agent()
         
-        # הגדר את הקונפיגורציה לריצה עם ModelSettings
-        run_config = RunConfig(
-            model_settings=ModelSettings(temperature=0.2)
-        )
-        
-        # הרץ את הסוכן עם ההודעה
         try:
-            # הרץ את הסוכן ושמור את התוצאה
-            result = await Runner.run(agent, message, run_config=run_config)
+            # יצירת Runner להפעלת הסוכן
+            runner = Runner(agent)
             
-            # בדוק אם יש תוצאה
+            # הגדרת הגדרות הרצה
+            run_config = RunConfig(
+                model_settings=ModelSettings(
+                    model=OPENAI_MODEL,
+                    temperature=0.2  # טמפרטורה נמוכה לתשובות יותר עקביות
+                )
+            )
+            
+            # הוסף היסטוריית שיחה אם קיימת
+            if MEMORY_ENABLED and conversation_history:
+                logger.info(f"Adding conversation history with {len(conversation_history)} messages")
+                
+                # הפעל את הסוכן עם היסטוריית השיחה
+                result = await runner.run(
+                    message,
+                    run_config=run_config,
+                    messages=conversation_history
+                )
+            else:
+                # הפעל את הסוכן ללא היסטוריית שיחה
+                result = await runner.run(
+                    message,
+                    run_config=run_config
+                )
+            
+            # בדוק אם התקבלה תוצאה
             if not result:
                 logger.error("No result returned from Runner.run")
                 return {
@@ -397,13 +422,13 @@ async def _process_message_async(message: str) -> Dict[str, Any]:
             "success": False
         }
 
-async def process_message(message: str, thread_id: Optional[str] = None) -> Dict[str, Any]:
+async def process_message(message: str, conversation_history: Optional[List[Dict[str, str]]] = None) -> Dict[str, Any]:
     """
     מעבד הודעה ומחזיר תשובה מהסוכן (גרסה אסינכרונית)
     
     Args:
         message: הודעת המשתמש
-        thread_id: מזהה שרשור קיים (לא בשימוש עם SDK החדש)
+        conversation_history: היסטוריית השיחה (אופציונלי)
     
     Returns:
         מילון עם התשובה ומזהה השרשור
@@ -412,7 +437,7 @@ async def process_message(message: str, thread_id: Optional[str] = None) -> Dict
     
     try:
         # קרא ישירות לפונקציה האסינכרונית
-        return await _process_message_async(message)
+        return await _process_message_async(message, conversation_history)
     except Exception as e:
         logger.error(f"Error processing message: {e}")
         return {
