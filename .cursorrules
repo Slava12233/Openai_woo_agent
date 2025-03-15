@@ -1,0 +1,293 @@
+# Instructions
+
+During your interaction with the user, if you find anything reusable in this project (e.g. version of a library, model name), especially about a fix to a mistake you made or a correction you received, you should take note in the `Lessons` section in the `.cursorrules` file so you will not make the same mistake again. 
+
+You should also use the `.cursorrules` file as a Scratchpad to organize your thoughts. Especially when you receive a new task, you should first review the content of the Scratchpad, clear old different task if necessary, first explain the task, and plan the steps you need to take to complete the task. You can use todo markers to indicate the progress, e.g.
+[X] Task 1
+[ ] Task 2
+
+Also update the progress of the task in the Scratchpad when you finish a subtask.
+Especially when you finished a milestone, it will help to improve your depth of task accomplishment to use the Scratchpad to reflect and plan.
+The goal is to help you maintain a big picture as well as the progress of the task. Always refer to the Scratchpad when you plan the next step.
+
+# Tools
+
+Note all the tools are in python. So in the case you need to do batch processing, you can always consult the python files and write your own script.
+
+## Screenshot Verification
+
+The screenshot verification workflow allows you to capture screenshots of web pages and verify their appearance using LLMs. The following tools are available:
+
+1. Screenshot Capture:
+```bash
+venv/bin/python tools/screenshot_utils.py URL [--output OUTPUT] [--width WIDTH] [--height HEIGHT]
+```
+
+2. LLM Verification with Images:
+```bash
+venv/bin/python tools/llm_api.py --prompt "Your verification question" --provider {openai|anthropic} --image path/to/screenshot.png
+```
+
+Example workflow:
+```python
+from screenshot_utils import take_screenshot_sync
+from llm_api import query_llm
+
+# Take a screenshot
+
+screenshot_path = take_screenshot_sync('https://example.com', 'screenshot.png')
+
+# Verify with LLM
+
+response = query_llm(
+    "What is the background color and title of this webpage?",
+    provider="openai",  # or "anthropic"
+    image_path=screenshot_path
+)
+print(response)
+```
+
+## LLM
+
+You always have an LLM at your side to help you with the task. For simple tasks, you could invoke the LLM by running the following command:
+```
+venv/bin/python ./tools/llm_api.py --prompt "What is the capital of France?" --provider "anthropic"
+```
+
+The LLM API supports multiple providers:
+- OpenAI (default, model: gpt-4o)
+- Azure OpenAI (model: configured via AZURE_OPENAI_MODEL_DEPLOYMENT in .env file, defaults to gpt-4o-ms)
+- DeepSeek (model: deepseek-chat)
+- Anthropic (model: claude-3-sonnet-20240229)
+- Gemini (model: gemini-pro)
+- Local LLM (model: Qwen/Qwen2.5-32B-Instruct-AWQ)
+
+But usually it's a better idea to check the content of the file and use the APIs in the `tools/llm_api.py` file to invoke the LLM if needed.
+
+## Web browser
+
+You could use the `tools/web_scraper.py` file to scrape the web.
+```
+venv/bin/python ./tools/web_scraper.py --max-concurrent 3 URL1 URL2 URL3
+```
+This will output the content of the web pages.
+
+## Search engine
+
+You could use the `tools/search_engine.py` file to search the web.
+```
+venv/bin/python ./tools/search_engine.py "your search keywords"
+```
+This will output the search results in the following format:
+```
+URL: https://example.com
+Title: This is the title of the search result
+Snippet: This is a snippet of the search result
+```
+If needed, you can further use the `web_scraper.py` file to scrape the web page content.
+
+# Lessons
+
+## User Specified Lessons
+
+- You have a python venv in ./venv. Use it.
+- Include info useful for debugging in the program output.
+- Read the file before you try to edit it.
+- Due to Cursor's limit, when you use `git` and `gh` and need to submit a multiline commit message, first write the message in a file, and then use `git commit -F <filename>` or similar command to commit. And then remove the file. Include "[Cursor] " in the commit message and PR title.
+- יש להשתמש ב-SDK של OpenAI Agents לניהול סוכנים במקום לממש את הלוגיקה בעצמנו
+- בגרסה 0.0.4 של ספריית openai-agents, הפונקציות Runner.run ו-Runner.run_streamed מחזירות coroutine שצריך לעשות לו await, והתוצאה מכילה את השדה final_output ולא output
+- בעת שימוש בפונקציה function_tool בספריית openai-agents בגרסה 0.0.4, יש לעטוף את הפונקציות הרגילות בפונקציות אסינכרוניות ולהגדיר את שם הפונקציה באמצעות __name__ במקום להשתמש בפרמטר name שאינו נתמך
+- בעת הגדרת model_settings בספריית openai-agents, יש להשתמש באובייקט ModelSettings ולא במילון רגיל, אחרת תתקבל שגיאה 'dict' object has no attribute 'resolve'
+- בעת הגדרת כלים בספריית openai-agents, יש לוודא שכל פונקציה אסינכרונית מוגדרת נכון ושהפונקציה מחזירה ערך תקין. יש להקפיד על טיפול בשגיאות בתוך הפונקציה כדי למנוע קריסה של הסוכן.
+- בעת הגדרת כלים בספריית openai-agents, יש להגדיר כל כלי כפונקציה נפרדת עם חתימה מפורשת הכוללת טיפוסים מדויקים לכל פרמטר. אין להשתמש בפונקציות דינמיות שנוצרות בלולאה, אלא להגדיר כל פונקציה בנפרד עם הדקורטור @function_tool.
+
+## Cursor learned
+
+- For search results, ensure proper handling of different character encodings (UTF-8) for international queries
+- Add debug information to stderr while keeping the main output clean in stdout for better pipeline integration
+- When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
+- Use 'gpt-4o' as the model name for OpenAI's GPT-4 with vision capabilities
+- When searching for recent news, use the current year (2025) instead of previous years, or simply use the "recent" keyword to get the latest information
+
+# Scratchpad
+
+## WooCommerce Telegram Bot - תוכנית פיתוח
+
+### מטרות הפרויקט
+- יצירת בוט טלגרם שמאפשר ניהול חנות WooCommerce באמצעות AI
+- שיפור ביצועים וזמני תגובה
+- ארגון הקוד בצורה מקצועית ומודולרית
+- הוספת יכולות מתקדמות בהדרגה
+
+### Lessons
+- יש להשתמש בסביבת הפיתוח הווירטואלית (venv) לניהול תלויות
+- יש לכלול מידע שימושי לדיבוג בפלט התוכנית
+- יש לקרוא את הקובץ לפני עריכתו
+- בעת שימוש ב-git עם הודעות commit מרובות שורות, יש לכתוב את ההודעה בקובץ ולהשתמש ב-`git commit -F <filename>`
+- יש להשתמש ב-SDK של OpenAI Agents לניהול סוכנים במקום לממש את הלוגיקה בעצמנו
+
+### Scratchpad
+### תוכנית עבודה - שלבים
+
+#### שלב 1: ארגון מחדש של מבנה הפרויקט
+- [X] התקנת סביבת פייתון וספריות נדרשות
+- [X] יצירת קובץ tools.py בסיסי
+- [X] יצירת בוט טלגרם בסיסי
+- [X] ארגון מחדש של מבנה הפרויקט לפי מודולים:
+  - [X] יצירת תיקיית `src` עם מודולים מופרדים
+  - [X] הפרדת הלוגיקה של WooCommerce, OpenAI והטלגרם בוט
+  - [X] יצירת קובץ `config.py` לניהול הגדרות
+- [X] מחיקת קבצים ישנים שאינם רלוונטיים למבנה החדש
+
+#### שלב 2: שיפור ביצועים - מנגנון Caching
+- [X] הוספת מנגנון caching בסיסי לקריאות WooCommerce API
+- [X] הוספת מנגנון לריקון יזום של ה-cache במקרים מסוימים
+- [X] הוספת לוגים לניטור יעילות ה-cache
+
+#### שלב 3: שיפור חוויית המשתמש
+- [X] הוספת תמיכה בפקודות נוספות בטלגרם
+- [X] שיפור הודעות הסטטוס והמשוב למשתמש
+- [ ] הוספת תמיכה בשליחת תמונות ומדיה אחרת
+
+#### שלב 4: הרחבת יכולות ה-WooCommerce
+- [X] הוספת תמיכה בעדכון מוצרים קיימים
+- [X] הוספת תמיכה במחיקת מוצרים
+- [X] הוספת תמיכה בניהול הזמנות מתקדם
+
+#### שלב 5: יכולות מתקדמות
+- [ ] הוספת תמיכה בהתראות על הזמנות חדשות
+- [ ] הוספת תמיכה בניתוח נתונים ודוחות
+- [ ] הוספת תמיכה בשפות נוספות
+
+#### שלב 6: שדרוג ל-OpenAI Agents SDK
+- [X] הוספת ספריית openai-agents לרשימת התלויות
+- [X] עדכון קובץ README.md להכללת מידע על ה-SDK
+- [X] עדכון מודול OpenAI לשימוש ב-SDK החדש
+- [X] הסרת קוד בוילרפלייט מיותר שה-SDK מטפל בו
+- [X] עדכון מודול הטלגרם להתאמה ל-SDK החדש
+
+#### שלב 7: שיפור זמני תגובה
+- [X] הוספת מנגנון לזיהוי שאלות פשוטות ומתן תשובות מוכנות מראש
+- [X] הוספת תמיכה ב-streaming לקבלת תשובות בזמן אמת
+- [X] עדכון הוראות הסוכן לתשובות קצרות ומהירות יותר
+- [X] הגדרת פרמטרים מיטביים למודל (temperature נמוך יותר)
+
+#### שלב 8: תיקון בעיות בספריית OpenAI Agents
+- [X] תיקון בעיית api_key בקונסטרקטור של Agent
+- [X] תיקון בעיית model_settings שצריך להיות אובייקט ModelSettings ולא מילון
+- [X] תיקון בעיית הגדרת הכלים והפיכתם לפונקציות אסינכרוניות תקינות
+- [X] הוספת טיפול בשגיאות בתוך הכלים למניעת קריסת הסוכן
+- [X] תיקון בעיית הסכמה של הכלים על ידי הגדרת כל כלי כפונקציה נפרדת עם חתימה מפורשת
+
+### סיכום התקדמות
+סיימנו את שלבים 1, 2, 6, 7 ו-8 במלואם, וחלק גדול משלבים 3 ו-4. הפרויקט כעת מאורגן בצורה מודולרית ומקצועית, עם מנגנון מטמון לשיפור ביצועים ותמיכה בפעולות בסיסיות של ניהול חנות WooCommerce. בנוסף, שדרגנו את הפרויקט לשימוש ב-SDK של OpenAI Agents, שמפשט את הקוד ומספק יכולות מתקדמות.
+
+תיקנו מספר בעיות בשימוש בספריית OpenAI Agents, כולל:
+1. הסרת פרמטר api_key מקונסטרקטור של Agent והגדרתו כמשתנה סביבה
+2. שימוש באובייקט ModelSettings במקום מילון רגיל
+3. הגדרה נכונה של כלים כפונקציות אסינכרוניות
+4. הוספת טיפול בשגיאות בתוך הכלים
+5. הגדרת כל כלי כפונקציה נפרדת עם חתימה מפורשת וטיפוסים מדויקים
+
+### עדכון אחרון - 15.03.2025
+הבוט עובד כעת בהצלחה! תיקנו את בעיית הסכמה של הכלים על ידי הגדרת כל כלי כפונקציה נפרדת עם חתימה מפורשת וטיפוסים מדויקים. הבוט מסוגל כעת לענות על שאלות לגבי המוצרים בחנות, לבצע פעולות ניהול, ולספק מידע שימושי למשתמש.
+
+### תוכנית שיפור זמני תגובה - 16.03.2025
+המשתמש דיווח שהבוט עונה מהר מאוד על שאלות פשוטות כמו "היי" או "שלום", אך לוקח זמן רב לענות על שאלות כלליות כמו "מה אתה יכול לעשות?". כדי לשפר את זמני התגובה, אנחנו מתכננים לממש את הפתרונות הבאים:
+
+#### שלב 9: שיפור זמני תגובה לשאלות כלליות
+- [X] הרחבת מילון ה-SIMPLE_RESPONSES לכלול תשובות מוכנות מראש לשאלות נפוצות נוספות
+- [X] הוספת מנגנון זיהוי שאלות כלליות באמצעות מילות מפתח
+- [X] יצירת מנגנון זיכרון (Memory Cache) לשמירת תשובות לשאלות שכבר נשאלו
+- [X] שיפור הלוגיקה של is_simple_question כדי לזהות וריאציות של שאלות נפוצות
+
+#### תוכנית מימוש מפורטת:
+1. **הרחבת SIMPLE_RESPONSES**:
+   - הוספת תשובות לשאלות כמו "מה אתה יכול לעשות?", "איך אתה יכול לעזור לי?", וכו'
+   - הוספת וריאציות נפוצות של שאלות אלה
+
+2. **שיפור זיהוי שאלות פשוטות**:
+   - עדכון הפונקציה is_simple_question כדי לזהות שאלות דומות (לא רק התאמה מדויקת)
+   - הוספת מנגנון לזיהוי מילות מפתח בשאלות
+
+3. **הוספת מנגנון זיכרון**:
+   - יצירת מטמון (cache) לשמירת תשובות לשאלות שכבר נשאלו
+   - הגדרת מדיניות פקיעת תוקף למטמון (מימוש בסיסי - שמירה ללא פקיעת תוקף)
+   - הוספת לוגיקה לבדיקת המטמון לפני פנייה למודל ה-AI
+
+4. **אופטימיזציה נוספת**:
+   - שיפור הגדרות המודל לתשובות מהירות יותר (temperature=0.2 כבר מוגדר)
+   - הוספת לוגים לניטור זמני תגובה
+
+### עדכון אחרון - 16.03.2025
+שיפרנו את זמני התגובה של הבוט לשאלות כלליות כמו "מה אתה יכול לעשות?" באמצעות:
+1. הרחבת מילון התשובות המוכנות מראש (SIMPLE_RESPONSES) עם תשובות לשאלות נפוצות
+2. הוספת מנגנון זיהוי מילות מפתח (KEYWORD_RESPONSES) לזיהוי שאלות כלליות
+3. יצירת מטמון (response_cache) לשמירת תשובות לשאלות שכבר נשאלו
+4. שיפור הלוגיקה של is_simple_question לזיהוי וריאציות של שאלות
+5. הוספת מדידת זמנים ולוגים לניטור ביצועים
+
+הבוט כעת אמור להגיב הרבה יותר מהר לשאלות כלליות, ולשפר את זמני התגובה שלו ככל שהוא נחשף ליותר שאלות.
+
+### תוכנית למימוש מנגנון למידה עצמית וזיכרון שיחה - 17.03.2025
+לאחר בדיקת הקוד הקיים, זיהינו שחסרים מנגנונים של למידה עצמית וזיכרון שיחה. להלן תוכנית תקיפה למימוש שיפורים אלה:
+
+#### שלב 10: הוספת זיכרון שיחה
+- [ ] יצירת מודול `memory.py` לניהול זיכרון שיחה
+- [ ] הוספת מחלקה `ConversationMemory` לשמירת היסטוריית שיחות
+- [ ] שמירת היסטוריית שיחה לפי מזהה משתמש
+- [ ] הגבלת גודל היסטוריית השיחה (מספר הודעות או תווים)
+- [ ] העברת היסטוריית השיחה לסוכן ה-AI בכל פנייה חדשה
+
+#### שלב 11: שימוש במסד נתונים לזיכרון ארוך טווח
+- [ ] הוספת תמיכה במסד נתונים PostgreSQL לשמירת נתונים
+- [ ] יצירת טבלאות לשמירת:
+  - [ ] היסטוריית שיחות
+  - [ ] תשובות נפוצות ומטמון
+  - [ ] העדפות משתמשים
+- [ ] מימוש מנגנון לטעינה ושמירה של נתונים במסד הנתונים
+- [ ] הוספת מנגנון ניקוי תקופתי של נתונים ישנים
+
+#### שלב 12: למידה מפידבק משתמשים
+- [ ] הוספת כפתורי פידבק להודעות הבוט (👍/👎)
+- [ ] שמירת פידבק משתמשים במסד הנתונים
+- [ ] שימוש בפידבק לשיפור תשובות עתידיות
+- [ ] יצירת מנגנון דירוג תשובות על בסיס פידבק
+- [ ] התאמת תשובות על בסיס דירוג
+
+#### שלב 13: שימוש ב-Memory ב-OpenAI Agents SDK
+- [ ] חקירת יכולות ה-Memory ב-SDK של OpenAI Agents
+- [ ] שילוב מנגנון ה-Memory של ה-SDK בבוט
+- [ ] התאמת הקוד הקיים לעבודה עם מנגנון ה-Memory
+- [ ] בדיקת ביצועים והשוואה למימוש המקומי
+
+#### שלב 14: למידה עצמית מתקדמת
+- [ ] יצירת מנגנון לזיהוי דפוסים בשאלות משתמשים
+- [ ] הוספת מנגנון אוטומטי להרחבת מילון התשובות המוכנות מראש
+- [ ] יצירת מנגנון לזיהוי שאלות חדשות נפוצות
+- [ ] הוספת יכולת לבוט ללמוד מטעויות קודמות
+- [ ] יצירת מנגנון לשיפור עצמי של הבוט לאורך זמן
+
+#### תוכנית מימוש מפורטת לשלב 10 (זיכרון שיחה):
+1. **יצירת מודול `memory.py`**:
+   - הגדרת מחלקה `ConversationMemory` לניהול זיכרון שיחה
+   - מימוש מתודות לשמירה ואחזור של היסטוריית שיחה
+   - הגדרת מבנה נתונים לשמירת הודעות (מקור, תוכן, זמן)
+
+2. **שמירת היסטוריית שיחה לפי משתמש**:
+   - שימוש במילון גלובלי או מחלקה סטטית לשמירת היסטוריה לפי מזהה משתמש
+   - הגדרת מבנה נתונים יעיל לאחזור מהיר של היסטוריית שיחה
+
+3. **הגבלת גודל היסטוריית השיחה**:
+   - הגדרת מספר מקסימלי של הודעות לשמירה (configurable)
+   - מימוש מנגנון לניקוי הודעות ישנות כאשר מגיעים למגבלה
+
+4. **שילוב עם הסוכן ה-AI**:
+   - עדכון פונקציית `process_message` להעברת היסטוריית השיחה לסוכן
+   - שימוש ב-RunConfig של ה-SDK להעברת היסטוריית השיחה
+
+5. **עדכון ממשק המשתמש**:
+   - הוספת פקודה `/history` להצגת היסטוריית השיחה
+   - הוספת פקודה `/clear_history` לניקוי היסטוריית השיחה
+
+השלבים הבאים יתמקדו בהוספת תמיכה במדיה (תמונות וגרפים), התראות על הזמנות חדשות, וניתוח נתונים מתקדם.
