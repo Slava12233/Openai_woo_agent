@@ -342,33 +342,34 @@ async def _process_message_async(message: str, conversation_history: Optional[Li
         agent = create_or_get_agent()
         
         try:
-            # יצירת Runner להפעלת הסוכן
-            runner = Runner(agent)
-            
             # הגדרת הגדרות הרצה
             run_config = RunConfig(
                 model_settings=ModelSettings(
-                    model=OPENAI_MODEL,
                     temperature=0.2  # טמפרטורה נמוכה לתשובות יותר עקביות
                 )
             )
             
-            # הוסף היסטוריית שיחה אם קיימת
-            if MEMORY_ENABLED and conversation_history:
+            # שלב את היסטוריית השיחה בתוך ההודעה אם קיימת
+            input_message = message
+            if MEMORY_ENABLED and conversation_history and len(conversation_history) > 0:
                 logger.info(f"Adding conversation history with {len(conversation_history)} messages")
                 
-                # הפעל את הסוכן עם היסטוריית השיחה
-                result = await runner.run(
-                    message,
-                    run_config=run_config,
-                    messages=conversation_history
-                )
-            else:
-                # הפעל את הסוכן ללא היסטוריית שיחה
-                result = await runner.run(
-                    message,
-                    run_config=run_config
-                )
+                # בנה מחרוזת היסטוריה
+                history_text = "היסטוריית שיחה:\n"
+                for msg in conversation_history:
+                    role = "משתמש" if msg["role"] == "user" else "בוט"
+                    history_text += f"{role}: {msg['content']}\n"
+                
+                # שלב את ההיסטוריה עם ההודעה הנוכחית
+                input_message = f"{history_text}\n\nהשאלה הנוכחית: {message}"
+                logger.info("Created input message with conversation history")
+            
+            # הפעל את הסוכן עם ההודעה המשולבת
+            result = await Runner.run(
+                agent,
+                input_message,
+                run_config=run_config
+            )
             
             # בדוק אם התקבלה תוצאה
             if not result:
