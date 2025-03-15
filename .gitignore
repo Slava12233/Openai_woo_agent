@@ -46,4 +46,16 @@ __pycache__/
 
 # OS specific
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+migrations/
+alembic.ini
+alembic/
+
+# PostgreSQL
+pg_data/
+postgres-data/ 

@@ -35,6 +35,17 @@ MEMORY_ENABLED = os.getenv("MEMORY_ENABLED", "True").lower() == "true"
 MEMORY_MAX_MESSAGES = int(os.getenv("MEMORY_MAX_MESSAGES", "50"))  # מספר מקסימלי של הודעות לשמירה לכל משתמש
 MEMORY_CONTEXT_LIMIT = int(os.getenv("MEMORY_CONTEXT_LIMIT", "10"))  # מספר ההודעות האחרונות שיועברו לסוכן
 
+# הגדרות מסד נתונים
+DB_ENABLED = os.getenv("DB_ENABLED", "False").lower() == "true"
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = int(os.getenv("DB_PORT", "5432"))
+DB_NAME = os.getenv("DB_NAME", "woo_bot_db")
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "5"))
+DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "10"))
+DB_CLEANUP_INTERVAL = int(os.getenv("DB_CLEANUP_INTERVAL", "86400"))  # 24 שעות בשניות
+
 # הגדרות כלים
 TOOLS_CONFIG = [
     {

@@ -16,6 +16,7 @@
 - תמיכה בסטרימינג לקבלת תשובות בזמן אמת
 - זיכרון שיחה לשמירת היסטוריית השיחה והעברתה לסוכן ה-AI
 - ניקוי אוטומטי של היסטוריית שיחה בתחילת צ'אט חדש
+- תמיכה במסד נתונים PostgreSQL לשמירת נתונים לטווח ארוך
 
 ## דרישות מערכת
 
@@ -23,6 +24,7 @@
 - חשבון WooCommerce עם מפתחות API
 - חשבון OpenAI עם מפתח API
 - בוט טלגרם (ניתן ליצור באמצעות [BotFather](https://t.me/botfather))
+- PostgreSQL (אופציונלי, לשמירת נתונים לטווח ארוך)
 
 ## התקנה
 
@@ -67,9 +69,45 @@ MEMORY_ENABLED=True
 MEMORY_MAX_MESSAGES=50
 MEMORY_CONTEXT_LIMIT=10
 
+# Database
+DB_ENABLED=False
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=woo_bot_db
+DB_USER=postgres
+DB_PASSWORD=your_db_password
+DB_POOL_SIZE=5
+DB_MAX_OVERFLOW=10
+DB_CLEANUP_INTERVAL=86400
+
 # Debug
 DEBUG=False
 LOG_LEVEL=INFO
+```
+
+4. הגדרת מסד נתונים PostgreSQL (אופציונלי):
+
+אם ברצונך להשתמש במסד נתונים PostgreSQL לשמירת נתונים לטווח ארוך, עליך:
+
+```bash
+# התקנת PostgreSQL בלינוקס
+sudo apt-get update
+sudo apt-get install postgresql postgresql-contrib
+
+# או בווינדוס, הורד והתקן מ:
+# https://www.postgresql.org/download/windows/
+
+# יצירת מסד נתונים
+sudo -u postgres psql
+postgres=# CREATE DATABASE woo_bot_db;
+postgres=# CREATE USER woo_bot WITH PASSWORD 'your_password';
+postgres=# GRANT ALL PRIVILEGES ON DATABASE woo_bot_db TO woo_bot;
+postgres=# \q
+
+# עדכון קובץ .env
+# DB_ENABLED=True
+# DB_USER=woo_bot
+# DB_PASSWORD=your_password
 ```
 
 ## שימוש
@@ -98,6 +136,12 @@ python run.py
 │   ├── config.py
 │   ├── main.py
 │   ├── memory.py
+│   ├── database/
+│   │   ├── __init__.py
+│   │   ├── connection.py
+│   │   ├── models.py
+│   │   ├── repository.py
+│   │   └── scheduler.py
 │   ├── woocommerce/
 │   │   ├── __init__.py
 │   │   ├── api.py
@@ -118,6 +162,15 @@ python run.py
 ```
 
 ## שיפורים אחרונים
+
+### שימוש במסד נתונים לזיכרון ארוך טווח (שלב 12)
+הוספנו תמיכה במסד נתונים PostgreSQL לשמירת נתונים לטווח ארוך:
+- הוספת מודול `database` עם תמיכה מלאה ב-PostgreSQL
+- יצירת טבלאות לשמירת היסטוריית שיחות, תשובות במטמון והעדפות משתמשים
+- מימוש מנגנון לטעינה ושמירה של נתונים במסד הנתונים
+- הוספת מנגנון ניקוי תקופתי של נתונים ישנים
+- עדכון מודול הזיכרון לשימוש במסד הנתונים
+- הוספת מתזמן משימות לניקוי תקופתי של מסד הנתונים
 
 ### ניקוי אוטומטי של היסטוריית שיחה (שלב 11)
 הוספנו מנגנון לניקוי אוטומטי של היסטוריית השיחה בתחילת צ'אט חדש:
@@ -164,12 +217,6 @@ python run.py
 
 ## תוכניות עתידיות
 
-### שלב 12: שימוש במסד נתונים לזיכרון ארוך טווח
-- הוספת תמיכה במסד נתונים PostgreSQL לשמירת נתונים
-- יצירת טבלאות לשמירת היסטוריית שיחות, תשובות נפוצות והעדפות משתמשים
-- מימוש מנגנון לטעינה ושמירה של נתונים במסד הנתונים
-- הוספת מנגנון ניקוי תקופתי של נתונים ישנים
-
 ### שלב 13: למידה מפידבק משתמשים
 - הוספת כפתורי פידבק להודעות הבוט (👍/👎)
 - שמירת פידבק משתמשים במסד הנתונים
@@ -194,6 +241,13 @@ python run.py
 - הוספת תמיכה בשפות נוספות
 
 ## לקחים שנלמדו בפיתוח
+
+### עבודה עם מסד נתונים
+- שימוש במסד נתונים מאפשר שמירת נתונים לטווח ארוך ושיתוף נתונים בין מופעים שונים של הבוט
+- חשוב לטפל בשגיאות התחברות למסד הנתונים ולספק מנגנון גיבוי (fallback) במקרה של כשל
+- שימוש ב-SQLAlchemy מפשט את העבודה עם מסד הנתונים ומאפשר החלפה קלה של סוג מסד הנתונים בעתיד
+- מנגנון ניקוי תקופתי חשוב למניעת גידול לא מבוקר של מסד הנתונים
+- שימוש במתזמן משימות מאפשר ביצוע פעולות תחזוקה ברקע מבלי להפריע לפעילות הבוט
 
 ### עבודה עם OpenAI Agents SDK
 - בגרסה 0.0.4 של ספריית openai-agents, הפונקציות Runner.run ו-Runner.run_streamed מחזירות coroutine שצריך לעשות לו await, והתוצאה מכילה את השדה final_output ולא output

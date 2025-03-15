@@ -7,10 +7,12 @@ import sys
 import os
 import io
 
-from src.config import LOG_LEVEL
+from src.config import LOG_LEVEL, DB_ENABLED
 from src.openai.agent import register_tools
 from src.woocommerce.tools import TOOL_HANDLERS
 from src.telegram.bot import run_bot
+from src.database.connection import init_db, close_db
+from src.database.scheduler import start_scheduler, stop_scheduler
 
 # הגדרת לוגר עם תמיכה בעברית
 # שימוש ב-UTF-8 לקובץ הלוג
@@ -56,15 +58,35 @@ def main() -> None:
     logger.info("Starting WooCommerce Telegram Bot")
     
     try:
+        # אתחול מסד הנתונים אם הוא מופעל
+        if DB_ENABLED:
+            logger.info("Initializing database")
+            if init_db():
+                logger.info("Database initialized successfully")
+                # הפעלת מתזמן ניקוי מסד הנתונים
+                start_scheduler()
+            else:
+                logger.warning("Failed to initialize database, continuing without database support")
+        
         # רשום את הכלים של WooCommerce
         register_tools(TOOL_HANDLERS)
         logger.info("WooCommerce tools registered")
         
         # הפעל את בוט הטלגרם
         run_bot()
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
     except Exception as e:
         logger.error(f"Error starting the bot: {e}")
-        sys.exit(1)
+    finally:
+        # סגירת מסד הנתונים ועצירת המתזמן
+        if DB_ENABLED:
+            logger.info("Stopping database scheduler")
+            stop_scheduler()
+            logger.info("Closing database connection")
+            close_db()
+        
+        logger.info("Bot shutdown complete")
 
 if __name__ == "__main__":
     main() 
