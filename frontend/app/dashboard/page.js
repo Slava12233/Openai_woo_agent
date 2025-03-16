@@ -21,7 +21,8 @@ function Dashboard() {
     error, 
     fetchAgents,
     removeAgent,
-    fetchAgentShareLink
+    fetchAgentShareLink,
+    editAgent
   } = useAgents();
   
   // מצבים לניהול הממשק
@@ -36,6 +37,7 @@ function Dashboard() {
   const [openLogPanelId, setOpenLogPanelId] = useState(null); // מזהה הסוכן שהלוגים שלו פתוחים
   const [isLogPanelVisible, setIsLogPanelVisible] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState(null); // מזהה הסוכן שמעדכנים את הסטטוס שלו
   
   // רפרנס לטיימר של הודעת ההעתקה
   const copyTimerRef = useRef(null);
@@ -156,6 +158,24 @@ function Dashboard() {
           <span className="text-green-600">וואטסאפ</span>
         </div>
       );
+    }
+  };
+
+  // פונקציה לשינוי סטטוס הסוכן
+  const toggleAgentStatus = async (agent) => {
+    try {
+      setUpdatingStatus(agent.id);
+      const newStatus = agent.status === 'פעיל' ? 'לא פעיל' : 'פעיל';
+      
+      // עדכון הסוכן עם הסטטוס החדש
+      await editAgent(agent.id, { status: newStatus });
+      
+      // הודעת הצלחה
+      console.log(`סטטוס הסוכן "${agent.name}" שונה ל-${newStatus}`);
+    } catch (error) {
+      console.error('שגיאה בשינוי סטטוס הסוכן:', error);
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
@@ -454,7 +474,31 @@ function Dashboard() {
                               
                               {/* סטטוס */}
                               <td className="px-6 py-4 whitespace-nowrap">
-                                {renderStatus(agent.status)}
+                                <div className="flex items-center justify-between">
+                                  {renderStatus(agent.status)}
+                                  
+                                  {/* טוגל סטטוס */}
+                                  <div className="relative inline-block w-12 ml-3 align-middle select-none transition duration-200 ease-in">
+                                    <input
+                                      type="checkbox"
+                                      name={`toggle-${agent.id}`}
+                                      id={`toggle-${agent.id}`}
+                                      checked={agent.status === 'פעיל'}
+                                      onChange={() => toggleAgentStatus(agent)}
+                                      disabled={updatingStatus === agent.id}
+                                      className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+                                    />
+                                    <label
+                                      htmlFor={`toggle-${agent.id}`}
+                                      className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${agent.status === 'פעיל' ? 'bg-green-400' : 'bg-gray-300'}`}
+                                    ></label>
+                                    {updatingStatus === agent.id && (
+                                      <div className="absolute left-0 top-0 w-full h-full flex items-center justify-center">
+                                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
                               </td>
                               
                               {/* תאריך יצירה */}
