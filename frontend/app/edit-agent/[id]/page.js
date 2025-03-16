@@ -4,44 +4,53 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../../../components/Navbar';
+import { useAgents } from '../../../context/AgentContext';
+import { withAuth } from '../../../context/AuthContext';
+import { isValidUrl } from '../../../utils';
+import { toast } from 'react-hot-toast';
 
-export default function EditAgent({ params }) {
+function EditAgent({ params }) {
   const router = useRouter();
   const { id } = params;
+  const { getAgent, updateAgent, loading: agentLoading } = useAgents();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     // שלב 1 - פרטי חנות
-    storeName: '',
+    name: '',
     storeUrl: '',
     consumerKey: '',
     consumerSecret: '',
     
     // שלב 2 - ערוץ תקשורת
     platform: 'telegram', // telegram או whatsapp
+    status: 'פעיל',
   });
   
   const [errors, setErrors] = useState({});
   
   // טעינת נתוני הסוכן הקיים
   useEffect(() => {
-    // כאן יהיה קוד לטעינת נתוני הסוכן מה-API
-    // לצורך הדגמה, נשתמש בנתונים לדוגמה
-    setTimeout(() => {
-      const agentData = {
-        id: id,
-        storeName: 'סוכן חנות הבגדים',
-        storeUrl: 'https://clothing-store.co.il',
-        consumerKey: 'ck_1234567890abcdef',
-        consumerSecret: 'cs_1234567890abcdef',
-        platform: 'telegram',
-      };
-      
-      setFormData(agentData);
-      setLoading(false);
-    }, 1000);
-  }, [id]);
+    const fetchAgentData = async () => {
+      try {
+        const agent = await getAgent(id);
+        if (agent) {
+          setFormData(agent);
+        } else {
+          toast.error('לא נמצא סוכן עם המזהה שצוין');
+          router.push('/dashboard');
+        }
+      } catch (err) {
+        console.error('שגיאה בטעינת נתוני הסוכן:', err);
+        toast.error('אירעה שגיאה בטעינת נתוני הסוכן');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAgentData();
+  }, [id, getAgent, router]);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -63,14 +72,14 @@ export default function EditAgent({ params }) {
     const newErrors = {};
     
     if (step === 1) {
-      if (!formData.storeName.trim()) {
-        newErrors.storeName = 'שם החנות הוא שדה חובה';
+      if (!formData.name.trim()) {
+        newErrors.name = 'שם הסוכן הוא שדה חובה';
       }
       
       if (!formData.storeUrl.trim()) {
         newErrors.storeUrl = 'כתובת החנות היא שדה חובה';
-      } else if (!/^https?:\/\//.test(formData.storeUrl)) {
-        newErrors.storeUrl = 'כתובת החנות חייבת להתחיל ב-http:// או https://';
+      } else if (!isValidUrl(formData.storeUrl)) {
+        newErrors.storeUrl = 'כתובת החנות חייבת להיות כתובת URL תקינה';
       }
       
       if (!formData.consumerKey.trim()) {
@@ -106,25 +115,26 @@ export default function EditAgent({ params }) {
     setSaving(true);
     
     try {
-      // כאן יהיה קוד לעדכון הסוכן מול ה-API
-      console.log('עדכון סוכן עם:', formData);
+      // עדכון הסוכן באמצעות ה-API
+      await updateAgent(id, formData);
       
-      // הדמיית עיכוב רשת
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // הצגת הודעת הצלחה
+      toast.success('הסוכן עודכן בהצלחה!');
       
       // חזרה לדף הדאשבורד
       router.push('/dashboard');
     } catch (err) {
       console.error('שגיאה בעדכון סוכן:', err);
       setErrors({
-        submit: 'אירעה שגיאה בעדכון הסוכן. אנא נסה שנית.'
+        submit: err.message || 'אירעה שגיאה בעדכון הסוכן. אנא נסה שנית.'
       });
+      toast.error('אירעה שגיאה בעדכון הסוכן');
     } finally {
       setSaving(false);
     }
   };
   
-  // יצירת לינק לדוגמה לשיתוף
+  // יצירת לינק לשיתוף
   const shareLink = `https://t.me/your_bot?start=${id}`;
   
   if (loading) {
@@ -141,7 +151,10 @@ export default function EditAgent({ params }) {
         <main className="max-w-3xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex justify-center items-center h-32">
-              <div className="text-lg">טוען נתונים...</div>
+              <div className="animate-pulse flex flex-col items-center">
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                <div className="text-lg text-gray-700">טוען נתונים...</div>
+              </div>
             </div>
           </div>
         </main>
@@ -189,19 +202,19 @@ export default function EditAgent({ params }) {
               <div>
                 <div className="space-y-6">
                   <div>
-                    <label htmlFor="storeName" className="block text-sm font-medium text-gray-700 mb-1">
-                      שם החנות
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                      שם הסוכן
                     </label>
                     <input
                       type="text"
-                      id="storeName"
-                      name="storeName"
-                      value={formData.storeName}
+                      id="name"
+                      name="name"
+                      value={formData.name}
                       onChange={handleChange}
-                      className={`w-full px-4 py-2 border ${errors.storeName ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent`}
-                      placeholder="הזן שם לזיהוי החנות"
+                      className={`w-full px-4 py-2 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent`}
+                      placeholder="הזן שם לזיהוי הסוכן"
                     />
-                    {errors.storeName && <p className="mt-1 text-sm text-red-600">{errors.storeName}</p>}
+                    {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
                   </div>
                   
                   <div>
@@ -331,6 +344,60 @@ export default function EditAgent({ params }) {
                     </div>
                   </div>
                   
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      סטטוס הסוכן
+                    </label>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div
+                        className={`border rounded-lg p-4 cursor-pointer ${
+                          formData.status === 'פעיל' ? 'border-primary ring-2 ring-primary' : 'border-gray-300'
+                        }`}
+                        onClick={() => handleChange({ target: { name: 'status', value: 'פעיל' } })}
+                      >
+                        <div className="flex items-center">
+                          <div className={`w-5 h-5 rounded-full border ${
+                            formData.status === 'פעיל' ? 'border-primary bg-primary' : 'border-gray-300'
+                          } flex items-center justify-center mr-3`}>
+                            {formData.status === 'פעיל' && (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-medium text-gray-900">פעיל</h3>
+                            <p className="text-sm text-gray-500">הסוכן פעיל ומגיב להודעות</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div
+                        className={`border rounded-lg p-4 cursor-pointer ${
+                          formData.status === 'מושבת' ? 'border-primary ring-2 ring-primary' : 'border-gray-300'
+                        }`}
+                        onClick={() => handleChange({ target: { name: 'status', value: 'מושבת' } })}
+                      >
+                        <div className="flex items-center">
+                          <div className={`w-5 h-5 rounded-full border ${
+                            formData.status === 'מושבת' ? 'border-primary bg-primary' : 'border-gray-300'
+                          } flex items-center justify-center mr-3`}>
+                            {formData.status === 'מושבת' && (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-medium text-gray-900">מושבת</h3>
+                            <p className="text-sm text-gray-500">הסוכן מושבת ואינו מגיב להודעות</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <div className="mt-6">
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       שיתוף הסוכן
@@ -346,7 +413,7 @@ export default function EditAgent({ params }) {
                         type="button"
                         onClick={() => {
                           navigator.clipboard.writeText(shareLink);
-                          alert('הלינק הועתק בהצלחה!');
+                          toast.success('הלינק הועתק בהצלחה!');
                         }}
                         className="px-4 py-2 bg-primary text-white rounded-r-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                       >
@@ -405,4 +472,7 @@ export default function EditAgent({ params }) {
       </main>
     </div>
   );
-} 
+}
+
+// עטיפת הקומפוננטה ב-withAuth כדי להגן על הדף
+export default withAuth(EditAgent);

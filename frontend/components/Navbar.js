@@ -3,11 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
   
   // בדיקה אם המשתמש גלל למטה כדי להוסיף אפקט לתפריט העליון
   useEffect(() => {
@@ -23,6 +26,18 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
+  // סגירת תפריט המשתמש בלחיצה מחוץ לתפריט
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuOpen && !event.target.closest('.user-menu')) {
+        setUserMenuOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [userMenuOpen]);
+  
   // רק להציג את הניווט בדפים הרלוונטיים
   if (!pathname.includes('/dashboard') && !pathname.includes('/create-agent') && 
       !pathname.includes('/edit-agent') && !pathname.includes('/settings') && 
@@ -32,6 +47,14 @@ export default function Navbar() {
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+  
+  const toggleUserMenu = () => {
+    setUserMenuOpen(!userMenuOpen);
+  };
+  
+  const handleLogout = () => {
+    logout();
   };
   
   return (
@@ -59,6 +82,25 @@ export default function Navbar() {
               </div>
             </div>
           </div>
+          
+          {/* פרטי המשתמש */}
+          {user && (
+            <div className="p-4 border-b border-gray-700">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold ml-3">
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">
+                    {user.name || 'משתמש'}
+                  </p>
+                  <p className="text-xs text-gray-400 truncate">
+                    {user.email || 'user@example.com'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           
           <nav className="flex-1 px-2 py-4 space-y-2 overflow-y-auto">
             <Link
@@ -119,15 +161,15 @@ export default function Navbar() {
           </nav>
           
           <div className="p-4 border-t border-gray-700">
-            <Link
-              href="/login"
+            <button
+              onClick={handleLogout}
               className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
               </svg>
               <span>התנתק</span>
-            </Link>
+            </button>
           </div>
         </div>
       </aside>
@@ -147,14 +189,49 @@ export default function Navbar() {
               WooManager
             </span>
           </div>
-          <button 
-            onClick={toggleSidebar}
-            className="p-2 rounded-md text-gray-700 hover:bg-gray-100"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+          
+          <div className="flex items-center">
+            {/* תפריט משתמש במובייל */}
+            {user && (
+              <div className="relative user-menu mr-2">
+                <button
+                  onClick={toggleUserMenu}
+                  className="flex items-center focus:outline-none"
+                >
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                </button>
+                
+                {userMenuOpen && (
+                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900">{user.name || 'משתמש'}</p>
+                      <p className="text-xs text-gray-500 truncate">{user.email || 'user@example.com'}</p>
+                    </div>
+                    <Link href="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      הגדרות
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                    >
+                      התנתק
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <button 
+              onClick={toggleSidebar}
+              className="p-2 rounded-md text-gray-700 hover:bg-gray-100"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
         </div>
       </nav>
       
@@ -170,4 +247,4 @@ export default function Navbar() {
       <div className="md:mr-64"></div>
     </>
   );
-} 
+}

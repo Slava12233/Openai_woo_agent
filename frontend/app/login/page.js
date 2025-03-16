@@ -1,20 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useAuth } from '../../context/AuthContext';
+import { cn } from '../../utils';
 
 export default function Login() {
   const [formData, setFormData] = useState({
-    username: '',
+    email: '',
     password: ''
   });
   const [errors, setErrors] = useState({});
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
+  const { login, error: authError, loading, user } = useAuth();
+
+  // אם המשתמש כבר מחובר, העבר אותו ללוח הבקרה
+  useEffect(() => {
+    if (user) {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -35,8 +43,10 @@ export default function Login() {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.username.trim()) {
-      newErrors.username = 'שם משתמש הוא שדה חובה';
+    if (!formData.email.trim()) {
+      newErrors.email = 'אימייל הוא שדה חובה';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'אנא הזן כתובת אימייל תקינה';
     }
     
     if (!formData.password) {
@@ -56,23 +66,14 @@ export default function Login() {
       return;
     }
     
-    setLoading(true);
-    setError('');
-
     try {
-      // כאן יהיה קוד להתחברות מול ה-API
-      // לצורך הדגמה, נעבור ישירות ללוח הבקרה
-      console.log('התחברות עם:', formData.username, formData.password);
-      
-      // הדמיית עיכוב רשת
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      router.push('/dashboard');
+      await login({
+        email: formData.email,
+        password: formData.password,
+        remember: rememberMe
+      });
     } catch (err) {
-      setError('שם משתמש או סיסמה שגויים');
-      console.error(err);
-    } finally {
-      setLoading(false);
+      console.error('Login error:', err);
     }
   };
 
@@ -129,35 +130,36 @@ export default function Login() {
             <p className="text-gray-500">התחבר כדי לנהל את הסוכנים שלך</p>
           </div>
           
-          {error && (
+          {authError && (
             <div className="bg-red-50 border-r-4 border-red-500 text-red-700 px-4 py-3 rounded mb-6 flex items-center" role="alert">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 text-red-500" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
-              <span className="block">{error}</span>
+              <span className="block">{authError}</span>
             </div>
           )}
           
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">שם משתמש</label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">אימייל</label>
               <div className="relative">
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                   </svg>
                 </div>
                 <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  value={formData.username}
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
                   onChange={handleChange}
-                  className={`w-full px-4 py-3 pr-10 border ${errors.username ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50`}
-                  placeholder="הזן שם משתמש"
+                  className={`w-full px-4 py-3 pr-10 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50`}
+                  placeholder="הזן כתובת אימייל"
                 />
               </div>
-              {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
+              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
             </div>
             
             <div>
@@ -264,4 +266,4 @@ export default function Login() {
       </div>
     </div>
   );
-} 
+}

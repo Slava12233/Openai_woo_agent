@@ -4,20 +4,27 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '../../components/Navbar';
+import { useAgents } from '../../context/AgentContext';
+import { withAuth } from '../../context/AuthContext';
+import { isValidUrl } from '../../utils';
+import { toast } from 'react-hot-toast';
 
-export default function CreateAgent() {
+function CreateAgent() {
   const router = useRouter();
+  const { addAgent, loading: agentLoading } = useAgents();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [shareLink, setShareLink] = useState('');
   const [formData, setFormData] = useState({
     // שלב 1 - פרטי חנות
-    storeName: '',
+    name: '',
     storeUrl: '',
     consumerKey: '',
     consumerSecret: '',
     
     // שלב 2 - ערוץ תקשורת
     platform: 'telegram', // telegram או whatsapp
+    status: 'פעיל',
   });
   
   const [errors, setErrors] = useState({});
@@ -42,14 +49,14 @@ export default function CreateAgent() {
     const newErrors = {};
     
     if (step === 1) {
-      if (!formData.storeName.trim()) {
-        newErrors.storeName = 'שם החנות הוא שדה חובה';
+      if (!formData.name.trim()) {
+        newErrors.name = 'שם הסוכן הוא שדה חובה';
       }
       
       if (!formData.storeUrl.trim()) {
         newErrors.storeUrl = 'כתובת החנות היא שדה חובה';
-      } else if (!/^https?:\/\//.test(formData.storeUrl)) {
-        newErrors.storeUrl = 'כתובת החנות חייבת להתחיל ב-http:// או https://';
+      } else if (!isValidUrl(formData.storeUrl)) {
+        newErrors.storeUrl = 'כתובת החנות חייבת להיות כתובת URL תקינה';
       }
       
       if (!formData.consumerKey.trim()) {
@@ -85,26 +92,27 @@ export default function CreateAgent() {
     setLoading(true);
     
     try {
-      // כאן יהיה קוד ליצירת סוכן חדש מול ה-API
-      console.log('יצירת סוכן חדש עם:', formData);
+      // יצירת סוכן חדש באמצעות ה-API
+      const newAgent = await addAgent(formData);
       
-      // הדמיית עיכוב רשת
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // קבלת לינק שיתוף
+      setShareLink(`https://t.me/your_bot?start=${newAgent.id}`);
+      
+      // הצגת הודעת הצלחה
+      toast.success('הסוכן נוצר בהצלחה!');
       
       // מעבר לשלב 3 - סיום
       setCurrentStep(3);
     } catch (err) {
       console.error('שגיאה ביצירת סוכן:', err);
       setErrors({
-        submit: 'אירעה שגיאה ביצירת הסוכן. אנא נסה שנית.'
+        submit: err.message || 'אירעה שגיאה ביצירת הסוכן. אנא נסה שנית.'
       });
+      toast.error('אירעה שגיאה ביצירת הסוכן');
     } finally {
       setLoading(false);
     }
   };
-  
-  // יצירת לינק לדוגמה לשיתוף
-  const shareLink = 'https://t.me/your_bot?start=123456';
   
   return (
     <div className="min-h-screen bg-background">
@@ -154,19 +162,19 @@ export default function CreateAgent() {
               <div>
                 <div className="space-y-6">
                   <div>
-                    <label htmlFor="storeName" className="block text-sm font-medium text-gray-700 mb-1">
-                      שם החנות
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                      שם הסוכן
                     </label>
                     <input
                       type="text"
-                      id="storeName"
-                      name="storeName"
-                      value={formData.storeName}
+                      id="name"
+                      name="name"
+                      value={formData.name}
                       onChange={handleChange}
-                      className={`w-full px-4 py-2 border ${errors.storeName ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent`}
-                      placeholder="הזן שם לזיהוי החנות"
+                      className={`w-full px-4 py-2 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent`}
+                      placeholder="הזן שם לזיהוי הסוכן"
                     />
-                    {errors.storeName && <p className="mt-1 text-sm text-red-600">{errors.storeName}</p>}
+                    {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
                   </div>
                   
                   <div>
@@ -344,7 +352,7 @@ export default function CreateAgent() {
                 </div>
                 <h3 className="mt-3 text-lg font-medium text-gray-900">הסוכן נוצר בהצלחה!</h3>
                 <p className="mt-2 text-sm text-gray-500">
-                  הסוכן "{formData.storeName}" נוצר בהצלחה ומוכן לשימוש.
+                  הסוכן "{formData.name}" נוצר בהצלחה ומוכן לשימוש.
                 </p>
                 
                 <div className="mt-8">
@@ -360,7 +368,7 @@ export default function CreateAgent() {
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(shareLink);
-                        alert('הלינק הועתק בהצלחה!');
+                        toast.success('הלינק הועתק בהצלחה!');
                       }}
                       className="px-4 py-2 bg-primary text-white rounded-r-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                     >
@@ -384,4 +392,7 @@ export default function CreateAgent() {
       </main>
     </div>
   );
-} 
+}
+
+// עטיפת הקומפוננטה ב-withAuth כדי להגן על הדף
+export default withAuth(CreateAgent);
