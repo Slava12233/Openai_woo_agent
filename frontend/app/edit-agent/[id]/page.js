@@ -12,7 +12,7 @@ import { toast } from 'react-hot-toast';
 function EditAgent({ params }) {
   const router = useRouter();
   const { id } = params;
-  const { getAgent, updateAgent, loading: agentLoading } = useAgents();
+  const { fetchAgentById, editAgent, loading: agentLoading } = useAgents();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,7 +34,7 @@ function EditAgent({ params }) {
   useEffect(() => {
     const fetchAgentData = async () => {
       try {
-        const agent = await getAgent(id);
+        const agent = await fetchAgentById(id);
         if (agent) {
           setFormData(agent);
         } else {
@@ -50,7 +50,7 @@ function EditAgent({ params }) {
     };
 
     fetchAgentData();
-  }, [id, getAgent, router]);
+  }, [id, fetchAgentById, router]);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -116,7 +116,7 @@ function EditAgent({ params }) {
     
     try {
       // עדכון הסוכן באמצעות ה-API
-      await updateAgent(id, formData);
+      await editAgent(id, formData);
       
       // הצגת הודעת הצלחה
       toast.success('הסוכן עודכן בהצלחה!');

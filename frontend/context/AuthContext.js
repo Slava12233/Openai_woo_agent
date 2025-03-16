@@ -41,8 +41,8 @@ export function AuthProvider({ children }) {
       // הגדרת המשתמש
       setUser(mockUser);
       
-      // מעבר ללוח הבקרה
-      router.push('/dashboard');
+      // הסרת הניתוב האוטומטי שגורם לתקיעה
+      // router.push('/dashboard');
       
       return { user: mockUser, token: 'dev-token-123456' };
     } catch (error) {

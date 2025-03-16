@@ -41,7 +41,7 @@ export default function Navbar() {
   // רק להציג את הניווט בדפים הרלוונטיים
   if (!pathname.includes('/dashboard') && !pathname.includes('/create-agent') && 
       !pathname.includes('/edit-agent') && !pathname.includes('/settings') && 
-      !pathname.includes('/help')) {
+      !pathname.includes('/help') && !pathname.includes('/agent')) {
     return null;
   }
 
@@ -60,23 +60,23 @@ export default function Navbar() {
   return (
     <>
       {/* תפריט צד */}
-      <aside className={`fixed inset-y-0 right-0 z-50 w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white shadow-xl transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0`}>
+      <aside className={`fixed inset-y-0 right-0 z-50 w-64 bg-blue-950 text-white shadow-md transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0`}>
         <div className="flex flex-col h-full">
-          <div className="p-5 border-b border-gray-700">
+          <div className="p-5 border-b border-blue-900">
             <div className="flex items-center justify-between">
               <button 
                 onClick={toggleSidebar}
-                className="md:hidden text-gray-300 hover:text-white"
+                className="md:hidden text-white hover:text-gray-200"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
               <div className="flex items-center">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-primary rounded-lg flex items-center justify-center shadow-lg ml-2">
-                  <span className="text-xl font-bold text-white">W</span>
+                <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-md ml-2">
+                  <span className="text-xl font-bold text-blue-950">W</span>
                 </div>
-                <span className="text-xl font-bold bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">
+                <span className="text-xl font-bold text-white">
                   WooManager
                 </span>
               </div>
@@ -85,16 +85,16 @@ export default function Navbar() {
           
           {/* פרטי המשתמש */}
           {user && (
-            <div className="p-4 border-b border-gray-700">
+            <div className="p-4 border-b border-blue-900">
               <div className="flex items-center">
-                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold ml-3">
+                <div className="w-10 h-10 bg-blue-800 rounded-full flex items-center justify-center text-white font-bold ml-3">
                   {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white truncate">
                     {user.name || 'משתמש'}
                   </p>
-                  <p className="text-xs text-gray-400 truncate">
+                  <p className="text-xs text-blue-200 truncate">
                     {user.email || 'user@example.com'}
                   </p>
                 </div>
@@ -107,8 +107,8 @@ export default function Navbar() {
               href="/dashboard"
               className={`flex items-center px-4 py-3 text-sm rounded-lg transition-all duration-200 ${
                 pathname === '/dashboard'
-                  ? 'bg-gray-700 text-white font-medium'
-                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  ? 'bg-blue-800 text-white font-medium'
+                  : 'text-blue-100 hover:bg-blue-900 hover:text-white'
               }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
@@ -121,8 +121,8 @@ export default function Navbar() {
               href="/create-agent"
               className={`flex items-center px-4 py-3 text-sm rounded-lg transition-all duration-200 ${
                 pathname.includes('/create-agent')
-                  ? 'bg-gray-700 text-white font-medium'
-                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  ? 'bg-blue-800 text-white font-medium'
+                  : 'text-blue-100 hover:bg-blue-900 hover:text-white'
               }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
@@ -135,8 +135,8 @@ export default function Navbar() {
               href="/settings"
               className={`flex items-center px-4 py-3 text-sm rounded-lg transition-all duration-200 ${
                 pathname.includes('/settings')
-                  ? 'bg-gray-700 text-white font-medium'
-                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  ? 'bg-blue-800 text-white font-medium'
+                  : 'text-blue-100 hover:bg-blue-900 hover:text-white'
               }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
@@ -149,8 +149,8 @@ export default function Navbar() {
               href="/help"
               className={`flex items-center px-4 py-3 text-sm rounded-lg transition-all duration-200 ${
                 pathname.includes('/help')
-                  ? 'bg-gray-700 text-white font-medium'
-                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                  ? 'bg-blue-800 text-white font-medium'
+                  : 'text-blue-100 hover:bg-blue-900 hover:text-white'
               }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
@@ -160,10 +160,10 @@ export default function Navbar() {
             </Link>
           </nav>
           
-          <div className="p-4 border-t border-gray-700">
+          <div className="p-4 border-t border-blue-900">
             <button
               onClick={handleLogout}
-              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200"
+              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-blue-950 bg-white rounded-lg hover:bg-gray-100 transition-all duration-200"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
@@ -177,15 +177,15 @@ export default function Navbar() {
       {/* תפריט עליון למובייל */}
       <nav className={`fixed top-0 left-0 right-0 z-40 md:hidden transition-all duration-300 ${
         scrolled 
-          ? 'bg-white/90 backdrop-blur-md shadow-lg' 
-          : 'bg-white shadow-sm border-b'
+          ? 'bg-blue-950 shadow-md' 
+          : 'bg-blue-950 shadow-sm border-b border-blue-900'
       }`}>
         <div className="px-4 py-3 flex justify-between items-center">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-primary rounded-lg flex items-center justify-center shadow-lg ml-2">
-              <span className="text-lg font-bold text-white">W</span>
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-md ml-2">
+              <span className="text-lg font-bold text-blue-950">W</span>
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+            <span className="text-xl font-bold text-white">
               WooManager
             </span>
           </div>
@@ -198,14 +198,14 @@ export default function Navbar() {
                   onClick={toggleUserMenu}
                   className="flex items-center focus:outline-none"
                 >
-                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                  <div className="w-8 h-8 bg-blue-800 rounded-full flex items-center justify-center text-white font-bold">
                     {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
                   </div>
                 </button>
                 
                 {userMenuOpen && (
-                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                    <div className="px-4 py-2 border-b border-gray-100">
+                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                    <div className="px-4 py-2 border-b border-gray-200">
                       <p className="text-sm font-medium text-gray-900">{user.name || 'משתמש'}</p>
                       <p className="text-xs text-gray-500 truncate">{user.email || 'user@example.com'}</p>
                     </div>
@@ -214,7 +214,7 @@ export default function Navbar() {
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                      className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
                       התנתק
                     </button>
@@ -225,7 +225,7 @@ export default function Navbar() {
             
             <button 
               onClick={toggleSidebar}
-              className="p-2 rounded-md text-gray-700 hover:bg-gray-100"
+              className="p-2 rounded-md text-white hover:bg-blue-900"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -238,7 +238,7 @@ export default function Navbar() {
       {/* כיסוי רקע כשהתפריט פתוח במובייל */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          className="fixed inset-0 bg-black bg-opacity-30 z-40 md:hidden"
           onClick={toggleSidebar}
         ></div>
       )}

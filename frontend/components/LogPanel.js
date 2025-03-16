@@ -305,7 +305,7 @@ const formatTimestamp = (timestamp) => {
   return `${hours}:${minutes}:${seconds}.${milliseconds}`;
 };
 
-export default function LogPanel({ agentId, isOpen, onClose }) {
+export default function LogPanel({ agentId, onClose }) {
   const [logs, setLogs] = useState([]);
   const [filteredLogs, setFilteredLogs] = useState([]);
   const [filter, setFilter] = useState('all');
@@ -317,43 +317,42 @@ export default function LogPanel({ agentId, isOpen, onClose }) {
   
   // טעינת לוגים ראשונית
   useEffect(() => {
-    if (isOpen) {
-      // סימולציה של טעינת נתונים מהשרת
-      setIsLoading(true);
-      setTimeout(() => {
-        try {
-          const initialLogs = generateDemoLogs(agentId);
-          setLogs(initialLogs);
-          setFilteredLogs(initialLogs);
-          setIsLoading(false);
-        } catch (err) {
-          setError('שגיאה בטעינת הלוגים');
-          setIsLoading(false);
-        }
-      }, 800);
-      
-      // סימולציה של קבלת לוגים בזמן אמת
-      const interval = setInterval(() => {
-        if (Math.random() > 0.7) { // 30% סיכוי להוספת לוג חדש
-          const newLog = generateNewLog(agentId);
-          setLogs(prevLogs => {
-            const updatedLogs = [newLog, ...prevLogs];
-            // עדכון הלוגים המסוננים בהתאם לפילטר הנוכחי
-            if ((filter === 'all' || filter === newLog.type) && 
-                (logLevel === 'all' || logLevel === newLog.level || 
-                 (logLevel === 'info' && ['info', 'debug', 'warning', 'error'].includes(newLog.level)) ||
-                 (logLevel === 'warning' && ['warning', 'error'].includes(newLog.level)) ||
-                 (logLevel === 'debug' && ['debug', 'info', 'warning', 'error'].includes(newLog.level)))) {
-              setFilteredLogs(prevFiltered => [newLog, ...prevFiltered]);
-            }
-            return updatedLogs;
-          });
-        }
-      }, 3000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [agentId, isOpen, filter, logLevel]);
+    // סימולציה של טעינת נתונים מהשרת
+    setIsLoading(true);
+    setTimeout(() => {
+      try {
+        const initialLogs = generateDemoLogs(agentId);
+        setLogs(initialLogs);
+        setFilteredLogs(initialLogs);
+        setIsLoading(false);
+      } catch (err) {
+        setError('שגיאה בטעינת הלוגים');
+        setIsLoading(false);
+      }
+    }, 800);
+    
+    // סימולציה של קבלת לוגים בזמן אמת
+    const interval = setInterval(() => {
+      if (Math.random() > 0.7) { // 30% סיכוי להוספת לוג חדש
+        const newLog = generateNewLog(agentId);
+        setLogs(prevLogs => {
+          const updatedLogs = [newLog, ...prevLogs];
+          // עדכון הלוגים המסוננים בהתאם לפילטר הנוכחי
+          if ((filter === 'all' || filter === newLog.type) && 
+              (logLevel === 'all' || logLevel === newLog.level || 
+               (logLevel === 'info' && ['info', 'debug', 'warning', 'error'].includes(newLog.level)) ||
+               (logLevel === 'warning' && ['warning', 'error'].includes(newLog.level)) ||
+               (logLevel === 'debug' && ['debug', 'info', 'warning', 'error'].includes(newLog.level)))) {
+            setFilteredLogs(prevFiltered => [newLog, ...prevFiltered]);
+          }
+          return updatedLogs;
+        });
+      }
+    }, 3000);
+    
+    // ניקוי האינטרוול בעת סגירת הקומפוננטה
+    return () => clearInterval(interval);
+  }, [agentId, filter, logLevel]);
   
   // פילטור לוגים לפי סוג וחומרה
   useEffect(() => {
@@ -422,126 +421,124 @@ export default function LogPanel({ agentId, isOpen, onClose }) {
   return (
     <div 
       className={`bg-gray-900 border border-gray-700 rounded-lg shadow-lg overflow-hidden transition-all duration-300 ease-in-out ${
-        isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+        'max-h-[600px] opacity-100'
       }`}
     >
-      {isOpen && (
-        <div className="p-4">
-          {/* כותרת וכפתורי פעולה */}
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-mono font-semibold text-gray-200">Console Output</h3>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setAutoScroll(!autoScroll)}
-                className={`px-3 py-1 rounded text-xs font-mono transition-colors duration-200 mr-2 ${
-                  autoScroll ? 'bg-green-700 text-white' : 'bg-gray-700 text-gray-300'
-                }`}
-                title={autoScroll ? 'Auto-scroll enabled' : 'Auto-scroll disabled'}
-              >
-                Auto-scroll {autoScroll ? 'ON' : 'OFF'}
-              </button>
-              <button
-                onClick={clearLogs}
-                className="bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1 rounded text-xs font-mono transition-colors duration-200 mr-2"
-                title="Clear logs"
-              >
-                Clear
-              </button>
-              <button
-                onClick={exportLogs}
-                className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs font-mono transition-colors duration-200 mr-2"
-                title="Export logs"
-              >
-                Export
-              </button>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-200"
-                title="Close"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          
-          {/* פילטרים */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <div className="flex items-center">
-              <span className="text-xs font-mono text-gray-400 mr-2">Type:</span>
-              <select 
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                className="bg-gray-800 text-gray-200 text-xs font-mono rounded border border-gray-700 px-2 py-1"
-              >
-                <option value="all">All</option>
-                <option value={LOG_TYPES.INFO}>INFO</option>
-                <option value={LOG_TYPES.DEBUG}>DEBUG</option>
-                <option value={LOG_TYPES.WARNING}>WARNING</option>
-                <option value={LOG_TYPES.ERROR}>ERROR</option>
-                <option value={LOG_TYPES.API_REQUEST}>API Request</option>
-                <option value={LOG_TYPES.API_RESPONSE}>API Response</option>
-                <option value={LOG_TYPES.USER_MESSAGE}>User Message</option>
-                <option value={LOG_TYPES.BOT_MESSAGE}>Bot Message</option>
-              </select>
-            </div>
-            
-            <div className="flex items-center ml-4">
-              <span className="text-xs font-mono text-gray-400 mr-2">Level:</span>
-              <select 
-                value={logLevel}
-                onChange={(e) => setLogLevel(e.target.value)}
-                className="bg-gray-800 text-gray-200 text-xs font-mono rounded border border-gray-700 px-2 py-1"
-              >
-                <option value="all">All</option>
-                <option value="debug">Debug+</option>
-                <option value="info">Info+</option>
-                <option value="warning">Warning+</option>
-                <option value="error">Error only</option>
-              </select>
-            </div>
-          </div>
-          
-          {/* תוכן הלוגים */}
-          {isLoading ? (
-            <div className="flex justify-center items-center h-40">
-              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          ) : error ? (
-            <div className="bg-red-900 text-red-200 p-4 rounded-md font-mono text-sm">
-              {error}
-            </div>
-          ) : filteredLogs.length === 0 ? (
-            <div className="text-center text-gray-500 py-8 font-mono">
-              No logs to display
-            </div>
-          ) : (
-            <div 
-              ref={logContainerRef}
-              className="max-h-96 overflow-y-auto bg-gray-950 rounded-md p-2 font-mono text-xs"
-              style={{ direction: 'ltr' }} // הלוגים מוצגים משמאל לימין
+      {/* כותרת וכפתורי פעולה */}
+      <div className="p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-mono font-semibold text-gray-200">Console Output</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setAutoScroll(!autoScroll)}
+              className={`px-3 py-1 rounded text-xs font-mono transition-colors duration-200 mr-2 ${
+                autoScroll ? 'bg-green-700 text-white' : 'bg-gray-700 text-gray-300'
+              }`}
+              title={autoScroll ? 'Auto-scroll enabled' : 'Auto-scroll disabled'}
             >
-              {filteredLogs.map(log => (
-                <div 
-                  key={log.id} 
-                  className={`py-1 px-2 ${
-                    log.level === 'error' ? 'bg-red-900 bg-opacity-20' : 
-                    log.level === 'warning' ? 'bg-yellow-900 bg-opacity-10' : 
-                    ''
-                  } hover:bg-gray-800`}
-                >
-                  <span className="text-gray-500">[{formatTimestamp(log.timestamp)}]</span>{' '}
-                  <span className={`font-semibold ${getLevelColor(log.level)}`}>
-                    [{log.level.toUpperCase()}]
-                  </span>{' '}
-                  <span className="text-gray-200">{log.content}</span>
-                </div>
-              ))}
-            </div>
-          )}
+              Auto-scroll {autoScroll ? 'ON' : 'OFF'}
+            </button>
+            <button
+              onClick={clearLogs}
+              className="bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1 rounded text-xs font-mono transition-colors duration-200 mr-2"
+              title="Clear logs"
+            >
+              Clear
+            </button>
+            <button
+              onClick={exportLogs}
+              className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs font-mono transition-colors duration-200 mr-2"
+              title="Export logs"
+            >
+              Export
+            </button>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-200"
+              title="Close"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
         </div>
-      )}
+        
+        {/* פילטרים */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex items-center">
+            <span className="text-xs font-mono text-gray-400 mr-2">Type:</span>
+            <select 
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="bg-gray-800 text-gray-200 text-xs font-mono rounded border border-gray-700 px-2 py-1"
+            >
+              <option value="all">All</option>
+              <option value={LOG_TYPES.INFO}>INFO</option>
+              <option value={LOG_TYPES.DEBUG}>DEBUG</option>
+              <option value={LOG_TYPES.WARNING}>WARNING</option>
+              <option value={LOG_TYPES.ERROR}>ERROR</option>
+              <option value={LOG_TYPES.API_REQUEST}>API Request</option>
+              <option value={LOG_TYPES.API_RESPONSE}>API Response</option>
+              <option value={LOG_TYPES.USER_MESSAGE}>User Message</option>
+              <option value={LOG_TYPES.BOT_MESSAGE}>Bot Message</option>
+            </select>
+          </div>
+          
+          <div className="flex items-center ml-4">
+            <span className="text-xs font-mono text-gray-400 mr-2">Level:</span>
+            <select 
+              value={logLevel}
+              onChange={(e) => setLogLevel(e.target.value)}
+              className="bg-gray-800 text-gray-200 text-xs font-mono rounded border border-gray-700 px-2 py-1"
+            >
+              <option value="all">All</option>
+              <option value="debug">Debug+</option>
+              <option value="info">Info+</option>
+              <option value="warning">Warning+</option>
+              <option value="error">Error only</option>
+            </select>
+          </div>
+        </div>
+        
+        {/* תוכן הלוגים */}
+        {isLoading ? (
+          <div className="flex justify-center items-center h-40">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : error ? (
+          <div className="bg-red-900 text-red-200 p-4 rounded-md font-mono text-sm">
+            {error}
+          </div>
+        ) : filteredLogs.length === 0 ? (
+          <div className="text-center text-gray-500 py-8 font-mono">
+            No logs to display
+          </div>
+        ) : (
+          <div 
+            ref={logContainerRef}
+            className="max-h-96 overflow-y-auto bg-gray-950 rounded-md p-2 font-mono text-xs"
+            style={{ direction: 'ltr' }} // הלוגים מוצגים משמאל לימין
+          >
+            {filteredLogs.map(log => (
+              <div 
+                key={log.id} 
+                className={`py-1 px-2 ${
+                  log.level === 'error' ? 'bg-red-900 bg-opacity-20' : 
+                  log.level === 'warning' ? 'bg-yellow-900 bg-opacity-10' : 
+                  ''
+                } hover:bg-gray-800`}
+              >
+                <span className="text-gray-500">[{formatTimestamp(log.timestamp)}]</span>{' '}
+                <span className={`font-semibold ${getLevelColor(log.level)}`}>
+                  [{log.level.toUpperCase()}]
+                </span>{' '}
+                <span className="text-gray-200">{log.content}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 } 

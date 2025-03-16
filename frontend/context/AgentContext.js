@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { 
   getAgents, 
   getAgentById, 
@@ -18,15 +18,95 @@ const AgentContext = createContext({});
 
 // פרובידר הסוכנים
 export function AgentProvider({ children }) {
-  const [agents, setAgents] = useState([]);
+  const [agents, setAgents] = useState([
+    {
+      id: '1',
+      name: 'סוכן מידע',
+      storeUrl: 'infostore.com',
+      platform: 'טלגרם',
+      status: 'לא פעיל',
+      createdAt: '2023-06-05T10:30:00.000Z',
+      description: 'סוכן המספק מידע על מוצרים ושירותים בחנות',
+      apiKey: 'sk-info-123456',
+      welcomeMessage: 'שלום! אני סוכן המידע של החנות. כיצד אוכל לעזור לך היום?',
+      model: 'gpt-4',
+      temperature: 0.7,
+      maxTokens: 1024
+    },
+    {
+      id: '2',
+      name: 'סוכן טכני',
+      storeUrl: 'techstore.com',
+      platform: 'וואטסאפ',
+      status: 'פעיל',
+      createdAt: '2023-10-20T14:45:00.000Z',
+      description: 'סוכן המספק תמיכה טכנית למוצרים אלקטרוניים',
+      apiKey: 'sk-tech-789012',
+      welcomeMessage: 'שלום! אני כאן כדי לעזור לך עם כל שאלה טכנית. במה אוכל לסייע?',
+      model: 'gpt-4',
+      temperature: 0.5,
+      maxTokens: 2048
+    },
+    {
+      id: '3',
+      name: 'סוכן מכירות',
+      storeUrl: 'mystore.com',
+      platform: 'טלגרם',
+      status: 'פעיל',
+      createdAt: '2023-12-15T09:15:00.000Z',
+      description: 'סוכן המסייע בתהליך הרכישה ומספק המלצות מוצרים',
+      apiKey: 'sk-sales-345678',
+      welcomeMessage: 'היי! אשמח לעזור לך למצוא את המוצר המושלם. מה אתה מחפש היום?',
+      model: 'gpt-4',
+      temperature: 0.8,
+      maxTokens: 1536
+    },
+    {
+      id: '4',
+      name: 'סוכן תמיכה',
+      storeUrl: 'supportstore.com',
+      platform: 'וואטסאפ',
+      status: 'פעיל',
+      createdAt: '2024-01-10T11:20:00.000Z',
+      description: 'סוכן המטפל בשאלות ובעיות של לקוחות',
+      apiKey: 'sk-support-901234',
+      welcomeMessage: 'שלום וברוכים הבאים לתמיכת הלקוחות שלנו. כיצד אוכל לסייע לך היום?',
+      model: 'gpt-4',
+      temperature: 0.6,
+      maxTokens: 1024
+    },
+    {
+      id: '5',
+      name: 'סוכן שירות',
+      storeUrl: 'servicestore.com',
+      platform: 'טלגרם',
+      status: 'לא פעיל',
+      createdAt: '2024-02-25T16:30:00.000Z',
+      description: 'סוכן המטפל בהזמנות, משלוחים והחזרות',
+      apiKey: 'sk-service-567890',
+      welcomeMessage: 'שלום! אני כאן כדי לעזור לך עם הזמנות, משלוחים והחזרות. במה אוכל לסייע?',
+      model: 'gpt-4',
+      temperature: 0.7,
+      maxTokens: 1536
+    }
+  ]);
+
   const [currentAgent, setCurrentAgent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({
-    totalAgents: 0,
-    activeAgents: 0,
-    totalConversations: 0,
+    totalInteractions: 2680,
+    totalStores: 5,
+    activeAgents: 3,
+    inactiveAgents: 2,
+    averageResponseTime: 2.4,
+    averageCompletionTime: 5.7,
+    responseAccuracy: 94.2,
+    conversionRate: 3.8
   });
+  
+  // שימוש ב-useRef כדי למנוע לולאות אינסופיות
+  const initialized = useRef(false);
 
   // נתונים מדומים לסביבת פיתוח
   const mockAgents = [
@@ -73,14 +153,18 @@ export function AgentProvider({ children }) {
 
   // טעינת רשימת הסוכנים בטעינת הדף - גרסת פיתוח
   useEffect(() => {
-    // מניעת טעינה מחדש אם כבר יש נתונים
-    if (agents.length === 0) {
+    // מניעת טעינה מחדש אם כבר יש נתונים או אם כבר אתחלנו
+    if (!initialized.current) {
+      initialized.current = true;
       fetchAgents();
     }
   }, []);
 
   // פונקציה לטעינת רשימת הסוכנים - גרסת פיתוח
   const fetchAgents = async () => {
+    // מניעת קריאות כפולות
+    if (loading) return;
+    
     setLoading(true);
     setError(null);
 
@@ -95,16 +179,16 @@ export function AgentProvider({ children }) {
         const totalConversations = data.reduce((sum, agent) => sum + (agent.conversationsCount || 0), 0);
         
         setStats({
-          totalAgents: data.length,
+          totalInteractions: totalConversations,
+          totalStores: data.length,
           activeAgents,
-          totalConversations,
+          inactiveAgents: data.length - activeAgents
         });
         
-        return data;
       } catch (apiError) {
-        console.log('API not available in development mode, using mock data');
+        console.log('[INFO] DEV MODE: Returning mock agents data');
         
-        // שימוש בנתונים מדומים
+        // במצב פיתוח - החזרת נתונים מדומים
         setAgents(mockAgents);
         
         // חישוב סטטיסטיקות בסיסיות
@@ -112,16 +196,15 @@ export function AgentProvider({ children }) {
         const totalConversations = mockAgents.reduce((sum, agent) => sum + (agent.conversationsCount || 0), 0);
         
         setStats({
-          totalAgents: mockAgents.length,
+          totalInteractions: totalConversations,
+          totalStores: mockAgents.length,
           activeAgents,
-          totalConversations,
+          inactiveAgents: mockAgents.length - activeAgents
         });
-        
-        return mockAgents;
       }
-    } catch (error) {
-      setError(error.message || 'שגיאה בטעינת רשימת הסוכנים');
-      throw error;
+    } catch (err) {
+      setError('שגיאה בטעינת רשימת הסוכנים');
+      console.error('Error fetching agents:', err);
     } finally {
       setLoading(false);
     }
@@ -129,6 +212,11 @@ export function AgentProvider({ children }) {
 
   // פונקציה לטעינת סוכן לפי מזהה - גרסת פיתוח
   const fetchAgentById = async (id) => {
+    // אם הסוכן כבר נטען ויש לו את אותו מזהה, אין צורך לטעון שוב
+    if (currentAgent && currentAgent.id === parseInt(id)) {
+      return currentAgent;
+    }
+    
     setLoading(true);
     setError(null);
 
@@ -173,7 +261,7 @@ export function AgentProvider({ children }) {
         // עדכון סטטיסטיקות
         setStats(prevStats => ({
           ...prevStats,
-          totalAgents: prevStats.totalAgents + 1,
+          totalStores: prevStats.totalStores + 1,
           activeAgents: data.status === 'פעיל' ? prevStats.activeAgents + 1 : prevStats.activeAgents,
         }));
         
@@ -199,7 +287,7 @@ export function AgentProvider({ children }) {
         // עדכון סטטיסטיקות
         setStats(prevStats => ({
           ...prevStats,
-          totalAgents: prevStats.totalAgents + 1,
+          totalStores: prevStats.totalStores + 1,
           activeAgents: newMockAgent.status === 'פעיל' ? prevStats.activeAgents + 1 : prevStats.activeAgents,
         }));
         
@@ -317,9 +405,9 @@ export function AgentProvider({ children }) {
         if (agentToRemove) {
           setStats(prevStats => ({
             ...prevStats,
-            totalAgents: prevStats.totalAgents - 1,
+            totalStores: prevStats.totalStores - 1,
             activeAgents: agentToRemove.status === 'פעיל' ? prevStats.activeAgents - 1 : prevStats.activeAgents,
-            totalConversations: prevStats.totalConversations - (agentToRemove.conversationsCount || 0),
+            totalInteractions: prevStats.totalInteractions - (agentToRemove.conversationsCount || 0),
           }));
         }
         
@@ -345,9 +433,9 @@ export function AgentProvider({ children }) {
         // עדכון סטטיסטיקות
         setStats(prevStats => ({
           ...prevStats,
-          totalAgents: prevStats.totalAgents - 1,
+          totalStores: prevStats.totalStores - 1,
           activeAgents: agentToRemove.status === 'פעיל' ? prevStats.activeAgents - 1 : prevStats.activeAgents,
-          totalConversations: prevStats.totalConversations - (agentToRemove.conversationsCount || 0),
+          totalInteractions: prevStats.totalInteractions - (agentToRemove.conversationsCount || 0),
         }));
         
         // איפוס הסוכן הנוכחי אם הוא הסוכן שנמחק
@@ -387,8 +475,8 @@ export function AgentProvider({ children }) {
         
         // יצירת נתונים מדומים לסטטיסטיקות
         const mockStats = {
-          totalConversations: agent.conversationsCount || 0,
-          dailyConversations: [
+          totalInteractions: agent.conversationsCount || 0,
+          dailyInteractions: [
             { date: '2023-03-10', count: 45 },
             { date: '2023-03-11', count: 52 },
             { date: '2023-03-12', count: 48 },
@@ -575,6 +663,14 @@ export function AgentProvider({ children }) {
     }
   };
 
+  // פונקציה לעדכון הסטטיסטיקות
+  const updateStats = (newStats) => {
+    setStats(prevStats => ({
+      ...prevStats,
+      ...newStats
+    }));
+  };
+
   // ערך הקונטקסט
   const value = {
     agents,
@@ -591,6 +687,7 @@ export function AgentProvider({ children }) {
     fetchAgentLogs,
     fetchAgentConversations,
     fetchAgentShareLink,
+    updateStats
   };
 
   return <AgentContext.Provider value={value}>{children}</AgentContext.Provider>;
