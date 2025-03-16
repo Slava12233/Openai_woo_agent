@@ -4,10 +4,12 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Navbar from '../../components/Navbar';
+import LogPanel from '../../components/LogPanel';
 import { useAgents } from '../../context/AgentContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatNumber, getStatusColor, getPlatformIcon, formatDate } from '../../utils';
 import { withAuth } from '../../context/AuthContext';
+import { FaSearch, FaFilter, FaPlus, FaCopy, FaEdit, FaTrash, FaEye, FaTerminal } from 'react-icons/fa';
 
 function Dashboard() {
   const router = useRouter();
@@ -31,6 +33,9 @@ function Dashboard() {
   const [agentToDelete, setAgentToDelete] = useState(null);
   const [copySuccess, setCopySuccess] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
+  const [openLogPanelId, setOpenLogPanelId] = useState(null); // מזהה הסוכן שהלוגים שלו פתוחים
+  const [isLogPanelVisible, setIsLogPanelVisible] = useState(false);
+  const [selectedAgentId, setSelectedAgentId] = useState(null);
   
   // רפרנס לטיימר של הודעת ההעתקה
   const copyTimerRef = useRef(null);
@@ -187,13 +192,25 @@ function Dashboard() {
     return null;
   };
 
+  // פונקציה לפתיחת/סגירת חלונית הלוגים
+  const toggleLogPanel = (agentId) => {
+    if (openLogPanelId === agentId) {
+      setOpenLogPanelId(null); // סגירת הפאנל אם הוא כבר פתוח
+    } else {
+      setOpenLogPanelId(agentId); // פתיחת הפאנל
+    }
+  };
+  
+  // פונקציה לסגירת חלונית הלוגים
+  const closeLogPanel = () => {
+    setOpenLogPanelId(null);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen bg-gray-50 ${isVisible ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}>
       <Navbar />
-      
-      {/* תוכן ראשי עם מרווח לתפריט צד */}
-      <div className="md:mr-64 pt-16 md:pt-0">
-        <main className={`max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 transition-all duration-1000 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+      <div className="container mx-auto px-4 py-8">
+        <main>
           {loading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-pulse flex flex-col items-center">
@@ -411,85 +428,101 @@ function Dashboard() {
                         </th>
                       </tr>
                     </thead>
-                    {/* תוכן הטבלה יושלם בהמשך */}
                     <tbody className="bg-white divide-y divide-gray-200">
                       {sortedAgents().length > 0 ? (
                         sortedAgents().map((agent) => (
-                          <tr key={agent.id} className="hover:bg-gray-50 transition-colors duration-200">
-                            {/* שם הסוכן */}
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-gray-900">{agent.name}</div>
-                            </td>
-                            
-                            {/* כתובת החנות */}
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-500">
-                                <a href={agent.storeUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                  {agent.storeUrl}
-                                </a>
-                              </div>
-                            </td>
-                            
-                            {/* פלטפורמה */}
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {renderPlatformIcon(agent.platform)}
-                            </td>
-                            
-                            {/* סטטוס */}
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {renderStatus(agent.status)}
-                            </td>
-                            
-                            {/* תאריך יצירה */}
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {formatDate(agent.createdAt)}
-                            </td>
-                            
-                            {/* פעולות */}
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <div className="flex items-center space-x-3 justify-end">
-                                {/* העתקת לינק */}
-                                <button
-                                  onClick={() => copyLink(agent.id)}
-                                  className="text-blue-600 hover:text-blue-900 relative"
-                                  title="העתק לינק"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
-                                  </svg>
+                          <>
+                            <tr key={agent.id} className="hover:bg-gray-50 transition-colors duration-200">
+                              {/* שם הסוכן */}
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm font-medium text-gray-900">{agent.name}</div>
+                              </td>
+                              
+                              {/* כתובת החנות */}
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-gray-500">
+                                  <a href={agent.storeUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                    {agent.storeUrl}
+                                  </a>
+                                </div>
+                              </td>
+                              
+                              {/* פלטפורמה */}
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {renderPlatformIcon(agent.platform)}
+                              </td>
+                              
+                              {/* סטטוס */}
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {renderStatus(agent.status)}
+                              </td>
+                              
+                              {/* תאריך יצירה */}
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {formatDate(agent.createdAt)}
+                              </td>
+                              
+                              {/* פעולות */}
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div className="flex items-center space-x-3 justify-end">
+                                  {/* כפתור לוגים */}
+                                  <button
+                                    onClick={() => {
+                                      setSelectedAgentId(agent.id);
+                                      setIsLogPanelVisible(true);
+                                    }}
+                                    className={`text-gray-600 hover:text-blue-700 relative mr-3 ${selectedAgentId === agent.id ? 'text-blue-700' : ''}`}
+                                    title="הצג לוגים"
+                                  >
+                                    <FaTerminal size={14} className="ml-1" />
+                                    <span className="text-xs">Log</span>
+                                  </button>
                                   
-                                  {/* הודעת אישור העתקה */}
-                                  {copySuccess === agent.id && (
-                                    <span className="absolute -top-8 right-0 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-md whitespace-nowrap">
-                                      הועתק ללוח!
-                                    </span>
-                                  )}
-                                </button>
-                                
-                                {/* עריכה */}
-                                <Link
-                                  href={`/edit-agent/${agent.id}`}
-                                  className="text-indigo-600 hover:text-indigo-900 mr-3"
-                                  title="ערוך"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-8 8a2 2 0 01-.586.586l-4 1a1 1 0 01-1.171-1.171l1-4a2 2 0 01.586-.586l8-8z" />
-                                  </svg>
-                                </Link>
-                                
-                                {/* מחיקה */}
-                                <button
-                                  onClick={() => openDeleteModal(agent)}
-                                  className="text-red-600 hover:text-red-900 mr-3"
-                                  title="מחק"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                                  </svg>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
+                                  {/* העתקת לינק */}
+                                  <button
+                                    onClick={() => copyLink(agent.id)}
+                                    className="text-blue-600 hover:text-blue-900 relative mr-3"
+                                    title="העתק לינק"
+                                  >
+                                    <FaCopy size={14} />
+                                  </button>
+                                  
+                                  {/* עריכה */}
+                                  <Link
+                                    href={`/edit-agent/${agent.id}`}
+                                    className="text-indigo-600 hover:text-indigo-900 mr-3"
+                                    title="ערוך"
+                                  >
+                                    <FaEdit size={14} />
+                                  </Link>
+                                  
+                                  {/* מחיקה */}
+                                  <button
+                                    onClick={() => openDeleteModal(agent)}
+                                    className="text-red-600 hover:text-red-900"
+                                    title="מחק"
+                                  >
+                                    <FaTrash size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                            {/* חלונית לוגים */}
+                            {selectedAgentId === agent.id && (
+                              <tr>
+                                <td colSpan="6" className="p-0 border-0">
+                                  <LogPanel 
+                                    agentId={agent.id} 
+                                    isOpen={selectedAgentId === agent.id} 
+                                    onClose={() => {
+                                      setIsLogPanelVisible(false);
+                                      setSelectedAgentId(null);
+                                    }} 
+                                  />
+                                </td>
+                              </tr>
+                            )}
+                          </>
                         ))
                       ) : (
                         <tr>
@@ -545,4 +578,4 @@ function Dashboard() {
   );
 }
 
-export default Dashboard;
+export default withAuth(Dashboard);
